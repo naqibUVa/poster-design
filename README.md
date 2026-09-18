@@ -1,11 +1,18 @@
 # Interactive Poster Studio
 
+[![Live App](https://img.shields.io/badge/Live%20Web%20App-Design%20Posters%20Online-emerald?style=for-the-badge&logo=githubpages)](https://naqibuva.github.io/poster-design/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+> 🚀 **Live Online Version**: Design posters, follow the interactive tutorial, and export PDFs directly in your browser:  
+> 👉 **[https://naqibuva.github.io/poster-design/](https://naqibuva.github.io/poster-design/)**
+
 A zero-install, entirely client-side designer for **large-format academic and conference
 posters**. Lay out a 48 × 36 inch poster in columns and recursively nested blocks, write your
 content in Markdown with LaTeX maths, drop in figures by upload *or* by file path, and export
 a print-ready PDF — all in the browser, with nothing sent anywhere.
 
-There is no build step, no framework, and no backend. Clone it, double-click a launcher, work.
+There is no build step, no framework, and no backend. Use it online or run locally.
+
 
 ---
 
