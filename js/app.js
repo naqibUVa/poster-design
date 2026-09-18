@@ -89,6 +89,7 @@ function boot() {
   });
 
   mountTutorialModal(document.getElementById('btn-tutorial'));
+  mountTutorialModal(document.getElementById('topbar-tutorial-btn'));
 
   wireAutosave();
   wireTopBar();
