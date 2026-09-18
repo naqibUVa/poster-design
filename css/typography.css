@@ -1,0 +1,701 @@
+/* ==========================================================================
+   typography.css — Interactive Poster Studio
+   Font stacks, the `.prose` markdown rendering used inside poster blocks,
+   KaTeX tuning and the named poster type roles.
+
+   Sizing rule: EVERYTHING inside `.prose` (and inside the poster generally) is
+   expressed in `em`, never px. canvas.js computes one px font-size per block
+   from `baseFontIn * fontScale * ppi`; every rule below multiplies that value,
+   so all text scales correctly with zoom and with the PDF export DPI.
+
+   Colour rule: poster type reads `--ps-*` custom properties written onto the
+   `.poster` root by canvas.js from `state.style`. No chrome tokens, no
+   dark-mode overrides — the poster always renders exactly as designed.
+   ========================================================================== */
+
+:root {
+  /* Web fonts come from Google Fonts with full system fallbacks, so the app
+     stays legible and correctly proportioned with no network. */
+  --psui-font-sans:
+    'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', 'Noto Sans', 'Liberation Sans', Arial, sans-serif;
+  --psui-font-serif:
+    'Source Serif 4', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia,
+    Cambria, 'Times New Roman', Times, serif;
+  --psui-font-mono:
+    'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+    'DejaVu Sans Mono', 'Liberation Mono', monospace;
+
+  /* Fallback poster stack, used only until canvas.js writes `--ps-font`. */
+  --ps-font: var(--psui-font-sans);
+}
+
+/* --------------------------------------------------------------------------
+   Application chrome base type
+   -------------------------------------------------------------------------- */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--psui-font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  font-synthesis-weight: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-variant-ligatures: common-ligatures;
+}
+
+/* Reusable monospace role (paths, ids, code hints, cheatsheet snippets). */
+.mono,
+code.mono,
+.left-panel .mono {
+  font-family: var(--psui-font-mono);
+  font-size: 0.92em;
+  font-variant-ligatures: none;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.005em;
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------------------
+   Poster root font
+   -------------------------------------------------------------------------- */
+
+.poster {
+  font-family: var(--ps-font, var(--psui-font-sans));
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --------------------------------------------------------------------------
+   Header type roles
+   Sizes are `var(--ps-*-size, <em fallback>)`: canvas.js may set an exact px
+   size inline (per-part scales) — when it does not, these em fallbacks keep
+   the hierarchy sane and still scale with the header's computed size.
+
+   All three are multiplied by `--ps-autofit`, which applyAutoFit() sets on
+   `.poster-header__center`. The band has a fixed height from `header.heightIn`
+   and clips what will not fit, and because the centre column is vertically
+   centred, an overlong title loses glyphs off BOTH ends — the top of the title
+   and the last affiliation line. Letting the header shrink like every block
+   already does is what stops that.
+   -------------------------------------------------------------------------- */
+
+.poster-title {
+  margin: 0;
+  font-family: inherit;
+  font-size: calc(var(--ps-title-size, 2.6em) * var(--ps-autofit, 1));
+  font-weight: 750;
+  line-height: 1.08;
+  letter-spacing: -0.014em;
+  color: var(--ps-title-color, var(--ps-header-text, #ffffff));
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.poster-authors {
+  margin: 0.32em 0 0;
+  font-family: inherit;
+  font-size: calc(var(--ps-authors-size, 1.24em) * var(--ps-autofit, 1));
+  font-weight: 550;
+  line-height: 1.28;
+  letter-spacing: 0.002em;
+  color: var(--ps-header-text, #ffffff);
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+.poster-affiliations {
+  margin: 0.3em 0 0;
+  font-family: inherit;
+  font-size: calc(var(--ps-affiliations-size, 0.92em) * var(--ps-autofit, 1));
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--ps-header-text, #ffffff);
+  opacity: 0.92;
+  white-space: pre-line; /* the field is a multi-line string */
+  overflow-wrap: break-word;
+}
+
+/* Empty contenteditable header fields still need to be clickable. */
+.poster-title:empty::before,
+.poster-authors:empty::before,
+.poster-affiliations:empty::before {
+  content: attr(data-placeholder);
+  opacity: 0.45;
+}
+
+/* --------------------------------------------------------------------------
+   Block title bar — type only; the bar's box lives in layout.css
+   -------------------------------------------------------------------------- */
+
+.block__title {
+  font-family: inherit;
+  font-size: var(--ps-block-title-size, 1.22em);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.006em;
+  color: var(--ps-heading, #0f3057);
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* ==========================================================================
+   Auto-fit typography
+
+   canvas.js measures each `[data-autofit]` element after layout and, when its
+   content spills, writes a multiplier into `--ps-autofit` (1 = natural size,
+   floor 0.45). Everything that participates reads it here:
+
+     --ps-em        natural size in em, written inline by the renderer
+     --ps-autofit   the shrink factor, written inline by applyAutoFit()
+
+   The multiplier is applied at exactly ONE level per subtree. Descendants size
+   themselves in em off that parent, so they follow along without compounding —
+   which is also why the renderer must never set an inline `font-size` on a
+   participating element: it would beat these rules and freeze the text.
+   ========================================================================== */
+
+.block__body[data-autofit] {
+  font-size: calc(1em * var(--ps-autofit, 1));
+}
+
+.block__section-text {
+  font-family: inherit;
+  font-size: calc(var(--ps-em, 1.6) * var(--ps-autofit, 1) * 1em);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.008em;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* ==========================================================================
+   Explicit point sizes
+
+   The hover menu's pt control wraps the selected run in a `<span class="ps-pt">`
+   and writes the number of points into `--pt`. `--ps-pt` is one typographic
+   point expressed in CSS pixels at the poster's CURRENT resolution — canvas.js
+   derives it from the ppi it was asked to render at — so a 24 pt run measures
+   24 pt on screen at every zoom level and 24 pt again in the PDF at any DPI.
+   A literal `pt` unit could not do that: it is pinned to the browser's idea of
+   an inch and would ignore both.
+   ========================================================================== */
+
+.ps-pt {
+  font-size: calc(var(--pt, 12) * var(--ps-pt, 1.3333px));
+}
+
+/* KaTeX output round-tripped through `data-md`. The wrapper exists so live
+   editing treats the several hundred nodes KaTeX emits as one atom; it must not
+   otherwise change how the maths sits in the line. */
+.ps-math {
+  display: inline;
+}
+
+.ps-math:has(> .katex-display) {
+  display: block;
+}
+
+/* ==========================================================================
+   .prose — rendered markdown inside a poster block
+   ========================================================================== */
+
+/* `--ps-section-scale` is the sidebar's "Section content scale" slider, written
+   onto the `.poster` root by canvas.js exactly as the header's title/authors
+   scales are. It is applied once, here at the top of the subtree: every heading
+   and paragraph below sizes itself in em off this value, so h1–h4 and body text
+   grow and shrink together and the visual hierarchy is preserved rather than
+   flattened. Applying it per element would compound instead. */
+.prose {
+  font-family: inherit;
+  font-size: calc(1em * var(--ps-section-scale, 1));
+  line-height: 1.45;
+  color: var(--ps-body, #1c2330);
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+}
+
+/* Figure captions. Their own auto-fit target, so a long caption shrinks
+   instead of stealing height from the picture above it. */
+.prose--caption {
+  font-size: calc(var(--ps-em, 0.82) * var(--ps-autofit, 1) * 1em);
+  line-height: 1.34;
+  opacity: 0.86;
+}
+
+/* Zero margin-collapse surprises at the edges of a block. */
+.prose > :first-child,
+.prose li > :first-child,
+.prose blockquote > :first-child,
+.prose td > :first-child,
+.prose th > :first-child {
+  margin-top: 0;
+}
+
+.prose > :last-child,
+.prose li > :last-child,
+.prose blockquote > :last-child,
+.prose td > :last-child,
+.prose th > :last-child {
+  margin-bottom: 0;
+}
+
+/* --- headings -------------------------------------------------------------- */
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  margin: 1em 0 0.38em;
+  font-family: inherit;
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.008em;
+  color: var(--ps-heading, #0f3057);
+  text-wrap: balance;
+}
+
+.prose h1 { font-size: 1.55em; }
+.prose h2 { font-size: 1.32em; }
+.prose h3 { font-size: 1.14em; }
+.prose h4 { font-size: 1.02em; font-weight: 650; }
+.prose h5 {
+  font-size: 0.94em;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.prose h6 {
+  font-size: 0.88em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ps-accent, #2f7ac9);
+}
+
+/* An h2 directly under the block title should not double the leading. */
+.prose h1 + h2,
+.prose h2 + h3,
+.prose h3 + h4 {
+  margin-top: 0.5em;
+}
+
+/* --- paragraphs & inline ---------------------------------------------------- */
+
+.prose p {
+  margin: 0 0 0.62em;
+}
+
+.prose strong,
+.prose b {
+  font-weight: 700;
+  color: inherit;
+}
+
+.prose em,
+.prose i {
+  font-style: italic;
+}
+
+.prose s,
+.prose del {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.prose mark {
+  padding: 0 0.14em;
+  border-radius: 0.14em;
+  background: rgb(var(--ps-accent-rgb, 47 122 201) / 0.22);
+  color: inherit;
+}
+
+.prose small {
+  font-size: 0.86em;
+}
+
+.prose sub,
+.prose sup {
+  font-size: 0.72em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+.prose sup { top: -0.48em; }
+.prose sub { bottom: -0.22em; }
+
+.prose abbr[title] {
+  text-decoration: underline dotted;
+  text-underline-offset: 0.16em;
+  cursor: help;
+}
+
+.prose a {
+  color: var(--ps-accent, #2f7ac9);
+  text-decoration: underline;
+  text-decoration-thickness: 0.055em;
+  text-underline-offset: 0.14em;
+  overflow-wrap: anywhere;
+}
+
+.prose a:hover {
+  text-decoration-thickness: 0.1em;
+}
+
+/* --- lists ------------------------------------------------------------------ */
+
+.prose ul,
+.prose ol {
+  margin: 0 0 0.62em;
+  padding-left: 1.25em;
+}
+
+.prose ul { list-style: disc outside; }
+.prose ol { list-style: decimal outside; }
+
+.prose li {
+  margin: 0 0 0.24em;
+  padding-left: 0.08em;
+}
+
+.prose li::marker {
+  color: var(--ps-accent, #2f7ac9);
+}
+
+.prose ol > li::marker {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+/* Nesting: tighter gutters and rotated markers, three levels deep. */
+.prose li > ul,
+.prose li > ol {
+  margin: 0.24em 0 0.16em;
+  padding-left: 1.1em;
+}
+
+.prose ul ul { list-style-type: circle; }
+.prose ul ul ul { list-style-type: square; }
+.prose ol ol { list-style-type: lower-alpha; }
+.prose ol ol ol { list-style-type: lower-roman; }
+
+.prose li > p {
+  margin-bottom: 0.28em;
+}
+
+/* Task lists produced by marked's GFM mode. */
+.prose li.task-list-item {
+  list-style: none;
+  margin-left: -1.05em;
+}
+
+.prose li.task-list-item input[type='checkbox'] {
+  width: 0.82em;
+  height: 0.82em;
+  margin: 0 0.4em 0 0;
+  vertical-align: -0.06em;
+  accent-color: var(--ps-accent, #2f7ac9);
+  pointer-events: none;
+}
+
+/* Definition lists (mini-markdown never emits these, marked extensions may). */
+.prose dl { margin: 0 0 0.62em; }
+.prose dt { font-weight: 650; color: var(--ps-heading, #0f3057); }
+.prose dd { margin: 0 0 0.34em 1.1em; }
+
+/* --- tables ------------------------------------------------------------------ */
+
+.prose table {
+  width: 100%;
+  margin: 0.5em 0 0.72em;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: 0.96em;
+  line-height: 1.36;
+  table-layout: auto;
+}
+
+.prose thead th {
+  background: rgb(var(--ps-accent-rgb, 47 122 201) / 0.14);
+  color: var(--ps-heading, #0f3057);
+  font-weight: 700;
+  letter-spacing: 0.004em;
+  border-bottom: 0.1em solid rgb(var(--ps-accent-rgb, 47 122 201) / 0.55);
+}
+
+.prose th,
+.prose td {
+  padding: 0.3em 0.5em;
+  border: 0.045em solid var(--ps-block-border, #c9d6e8);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: break-word;
+}
+
+.prose tbody tr:nth-child(even) {
+  background: rgb(var(--ps-accent-rgb, 47 122 201) / 0.05);
+}
+
+.prose tfoot td {
+  font-weight: 650;
+  background: rgb(var(--ps-accent-rgb, 47 122 201) / 0.08);
+}
+
+.prose caption {
+  caption-side: bottom;
+  padding-top: 0.3em;
+  font-size: 0.88em;
+  font-style: italic;
+  color: var(--ps-body, #1c2330);
+  opacity: 0.78;
+  text-align: left;
+}
+
+/* Alignment attributes emitted by GFM tables. */
+.prose th[align='center'],
+.prose td[align='center'] { text-align: center; }
+.prose th[align='right'],
+.prose td[align='right'] { text-align: right; }
+
+/* --- code --------------------------------------------------------------------- */
+
+.prose code,
+.prose kbd,
+.prose samp {
+  font-family: var(--psui-font-mono);
+  font-size: 0.9em;
+  font-variant-ligatures: none;
+  overflow-wrap: anywhere;
+}
+
+.prose :not(pre) > code {
+  padding: 0.08em 0.28em;
+  border: 0.04em solid rgb(var(--ps-accent-rgb, 47 122 201) / 0.26);
+  border-radius: 0.22em;
+  background: rgb(var(--ps-accent-rgb, 47 122 201) / 0.09);
+  color: inherit;
+  white-space: break-spaces;
+}
+
+.prose pre {
+  margin: 0.5em 0 0.7em;
+  padding: 0.55em 0.7em;
+  border: 0.045em solid var(--ps-block-border, #c9d6e8);
+  border-left: 0.18em solid rgb(var(--ps-accent-rgb, 47 122 201) / 0.6);
+  border-radius: 0.24em;
+  background: rgb(var(--ps-accent-rgb, 47 122 201) / 0.06);
+  font-family: var(--psui-font-mono);
+  font-size: 0.86em;
+  line-height: 1.42;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 2;
+}
+
+.prose pre code {
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-size: 1em;
+  white-space: inherit;
+}
+
+.prose kbd {
+  padding: 0.06em 0.3em;
+  border: 0.045em solid var(--ps-block-border, #c9d6e8);
+  border-bottom-width: 0.12em;
+  border-radius: 0.22em;
+  background: rgb(var(--ps-body-rgb, 28 35 48) / 0.06);
+}
+
+/* --- blockquote ---------------------------------------------------------------- */
+
+.prose blockquote {
+  margin: 0.55em 0 0.7em;
+  padding: 0.12em 0 0.12em 0.75em;
+  border-left: 0.16em solid var(--ps-accent, #2f7ac9);
+  color: var(--ps-body, #1c2330);
+  font-style: italic;
+}
+
+.prose blockquote p {
+  margin-bottom: 0.35em;
+}
+
+.prose blockquote cite,
+.prose blockquote footer {
+  display: block;
+  margin-top: 0.25em;
+  font-size: 0.9em;
+  font-style: normal;
+  opacity: 0.78;
+}
+
+.prose blockquote blockquote {
+  margin-top: 0.35em;
+  border-left-color: rgb(var(--ps-accent-rgb, 47 122 201) / 0.55);
+}
+
+/* --- rules & media --------------------------------------------------------------- */
+
+.prose hr {
+  height: 0;
+  margin: 0.85em 0;
+  border: 0;
+  border-top: 0.055em solid var(--ps-block-border, #c9d6e8);
+}
+
+.prose img,
+.prose svg,
+.prose video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.45em 0;
+  border-radius: 0.16em;
+}
+
+.prose figure {
+  margin: 0.6em 0;
+}
+
+.prose figcaption {
+  margin-top: 0.25em;
+  font-size: 0.88em;
+  line-height: 1.35;
+  color: var(--ps-body, #1c2330);
+  opacity: 0.8;
+  text-align: center;
+}
+
+/* Two adjacent block elements should never fuse visually. */
+.prose > * + h1,
+.prose > * + h2,
+.prose > * + h3 {
+  margin-top: 0.85em;
+}
+
+/* ==========================================================================
+   KaTeX
+   `.katex` inherits the block's computed px size, so every math run matches
+   the surrounding text instead of KaTeX's default 1.21em upscale.
+   ========================================================================== */
+
+.katex {
+  font-size: 1em;
+  line-height: 1.2;
+  color: inherit;
+  text-indent: 0;
+  text-rendering: auto;
+}
+
+.katex .mord,
+.katex .mbin,
+.katex .mrel,
+.katex .mopen,
+.katex .mclose,
+.katex .mpunct {
+  color: inherit;
+}
+
+/* Inline math must not blow up the line box. */
+.prose .katex {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+
+.katex-display {
+  display: block;
+  margin: 0.7em 0;
+  padding: 0.05em 0;
+  text-align: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.katex-display > .katex {
+  display: inline-block;
+  max-width: 100%;
+  text-align: center;
+  white-space: normal;
+}
+
+.katex-display:first-child { margin-top: 0; }
+.katex-display:last-child { margin-bottom: 0; }
+
+/* Numbered equations stay inside the block. */
+.katex-display > .katex > .katex-html {
+  max-width: 100%;
+}
+
+/* KaTeX error output (bad TeX) should read as a soft warning, not a crash. */
+.katex .katex-error,
+.katex-error {
+  color: #b3261e;
+  font-family: var(--psui-font-mono);
+  font-size: 0.9em;
+}
+
+/* --- offline / parse-failure fallback -------------------------------------------- */
+
+.math-raw {
+  display: inline;
+  padding: 0.06em 0.3em;
+  border: 0.04em dashed rgb(var(--ps-accent-rgb, 47 122 201) / 0.45);
+  border-radius: 0.2em;
+  background: rgb(var(--ps-accent-rgb, 47 122 201) / 0.07);
+  font-family: var(--psui-font-mono);
+  font-size: 0.9em;
+  font-style: normal;
+  color: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.math-raw--display,
+.math-raw.is-display {
+  display: block;
+  margin: 0.65em auto;
+  padding: 0.4em 0.6em;
+  text-align: center;
+}
+
+/* ==========================================================================
+   Print
+   ========================================================================== */
+
+@media print {
+  .prose a {
+    text-decoration: none;
+  }
+
+  .prose pre,
+  .prose blockquote,
+  .prose table,
+  .prose figure,
+  .katex-display {
+    break-inside: avoid;
+  }
+
+  .prose h1,
+  .prose h2,
+  .prose h3 {
+    break-after: avoid;
+  }
+}

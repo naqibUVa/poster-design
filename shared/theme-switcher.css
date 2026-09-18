@@ -1,0 +1,228 @@
+/* ===========================================================================
+   App Suite — styling for the theme switcher and the collapsible chrome.
+
+   Split out from themes.css because themes.css is tokens plus base elements
+   and should stay usable on its own. This file styles the widget that
+   theme-switcher.js injects, and provides the two utility behaviours apps need
+   to opt into collapsible toolbars.
+
+   Link after themes.css:
+       <link rel="stylesheet" href="../../shared/themes.css">
+       <link rel="stylesheet" href="../../shared/theme-switcher.css">
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Collapsible chrome.
+
+   An app marks each bar it is willing to give up:
+
+       <header data-chrome-region>…</header>
+       <div class="toolbar" data-chrome-region>…</div>
+
+   and gets Cmd/Ctrl+Shift+H for free. Height, not just visibility, is animated
+   away — `display: none` would work but jumps, and on a laptop the whole point
+   is watching the canvas grow into the space.
+   --------------------------------------------------------------------------- */
+
+[data-chrome-region] {
+  transition: max-height var(--dur-slow) var(--ease),
+              opacity var(--dur-fast) var(--ease),
+              margin var(--dur-slow) var(--ease),
+              padding var(--dur-slow) var(--ease);
+  overflow: hidden;
+  max-height: 40vh;
+}
+
+[data-chrome-region].chrome-hidden {
+  max-height: 0 !important;
+  opacity: 0;
+  margin-block: 0 !important;
+  padding-block: 0 !important;
+  border-width: 0 !important;
+  /* Removed from the tab order as well as from view. A hidden toolbar you can
+     still tab into is worse than one that is merely off-screen. */
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* A thin hint that chrome is hidden, so the state is discoverable rather than
+   something the user has to remember doing. */
+[data-chrome="hidden"] body::before {
+  content: "";
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.7;
+  z-index: var(--z-toast);
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------------------
+   The control cluster.
+   --------------------------------------------------------------------------- */
+
+.appsuite-theme-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  position: relative;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+}
+
+/* When an app provides no [data-theme-controls] slot the cluster docks itself
+   bottom-right: out of the way of a top toolbar, and still reachable when that
+   toolbar is hidden — which is exactly when it is needed most. */
+.appsuite-theme-dock.is-floating {
+  position: fixed;
+  inset-block-end: var(--space-4);
+  inset-inline-end: var(--space-4);
+  z-index: var(--z-sticky);
+  padding: var(--space-1);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.appsuite-theme-controls button {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  height: var(--control-height);
+  padding-inline: var(--control-pad-x);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease),
+              border-color var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease);
+}
+
+.appsuite-theme-controls button:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.appsuite-theme-controls button:active {
+  background: var(--surface-active);
+}
+
+.appsuite-chrome-toggle[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent);
+}
+
+/* The dot doubles as the swatch: it is the only place the palette's identity
+   colour appears in the control, which keeps the cluster quiet. */
+.appsuite-swatch-dot {
+  inline-size: 12px;
+  block-size: 12px;
+  border-radius: var(--radius-full);
+  background: var(--swatch, var(--accent));
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.18);
+  flex: none;
+}
+
+/* ---------------------------------------------------------------------------
+   The palette menu.
+   --------------------------------------------------------------------------- */
+
+.appsuite-theme-menu {
+  position: absolute;
+  inset-block-end: calc(100% + var(--space-2));
+  inset-inline-end: 0;
+  min-inline-size: 232px;
+  padding: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-overlay);
+}
+
+.appsuite-theme-menu[hidden] {
+  display: none;
+}
+
+.appsuite-swatches {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+}
+
+.appsuite-theme-controls .appsuite-swatch {
+  justify-content: flex-start;
+  inline-size: 100%;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  padding-inline: var(--space-2);
+  color: var(--text-muted);
+}
+
+.appsuite-theme-controls .appsuite-swatch:hover {
+  background: var(--surface-hover);
+  border-color: transparent;
+  color: var(--text);
+}
+
+.appsuite-theme-controls .appsuite-swatch.is-active {
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.appsuite-swatch-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.appsuite-theme-row {
+  display: flex;
+  gap: var(--space-2);
+  margin-block-start: var(--space-2);
+  padding-block-start: var(--space-2);
+  border-block-start: 1px solid var(--border);
+}
+
+.appsuite-theme-controls .appsuite-mini {
+  flex: 1;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   Utilities.
+   --------------------------------------------------------------------------- */
+
+/* Visible to a screen reader, not to the eye. clip-path rather than
+   display:none, which would take it out of the accessibility tree too. */
+.appsuite-sr-only {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media print {
+  .appsuite-theme-controls {
+    display: none !important;
+  }
+}

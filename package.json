@@ -1,0 +1,26 @@
+{
+  "name": "poster-studio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Interactive Poster Studio — a zero-build, client-side designer for large-format academic conference posters.",
+  "keywords": [
+    "poster",
+    "conference",
+    "markdown",
+    "latex",
+    "pdf",
+    "vanilla-js"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "start": "npx --yes serve -l 5173 .",
+    "dev": "npx --yes serve -l 5173 .",
+    "serve:python": "python3 -m http.server 5173",
+    "open": "node -e \"const u='http://localhost:5173/';const p=process.platform;const c=p==='darwin'?'open':p==='win32'?'start \\\"\\\"':'xdg-open';require('child_process').exec(c+' '+u)\"",
+    "check": "node --check js/data.js && node --check js/posterState.js && node --check js/storage.js && node --check js/pdfExporter.js && node --check js/pptxExporter.js && node --check js/components/leftPanel.js && node --check js/components/panelResizer.js && node --check js/components/canvas.js && node --check js/app.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

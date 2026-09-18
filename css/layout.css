@@ -1,0 +1,922 @@
+/* ==========================================================================
+   layout.css — Interactive Poster Studio
+
+   Owns the application shell (top bar frame, workspace, stage) and the poster
+   itself: background layers, header band, columns, the recursive block tree,
+   images, selection affordances and the print/PDF stages.
+
+   Sizing contract: canvas.js writes every poster dimension inline in px, derived
+   from inches × the current pixels-per-inch. Nothing here may introduce a
+   `transform: scale()` — zoom is a change of ppi, so the on-screen sheet and the
+   printed sheet come out of the same code path. Rules in this file therefore set
+   structure (flex, overflow, position) and leave measurements alone.
+
+   Token namespace: chrome uses `--psui-*` (defined in controls.css); the poster
+   uses `--ps-*` (written by canvas.js from state.style).
+   ========================================================================== */
+
+/* ==========================================================================
+   1. Reset & document shell
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;              /* the stage and the panel scroll, not the page */
+  background: var(--psui-bg);
+  color: var(--psui-ink);
+}
+
+/* --- top bar -------------------------------------------------------------- */
+
+/* Height and padding come from the shared density tokens, so switching the
+   suite to "compact" genuinely reclaims vertical space here rather than just
+   shrinking the type. */
+.topbar {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--psui-gap);
+  height: var(--bar-height, 46px);
+  padding: 0 var(--bar-pad-x, 12px);
+  z-index: 20;
+}
+
+/* Push the zoom cluster and the action cluster to the right of the brand. */
+.topbar__brand {
+  margin-right: auto;
+}
+
+.topbar__zoom,
+.topbar__actions {
+  flex: 0 0 auto;
+}
+
+/* --- workspace ------------------------------------------------------------ */
+
+.workspace {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;                 /* lets the children scroll instead of the body */
+  min-width: 0;
+}
+
+/* --- action rail ---------------------------------------------------------- */
+
+/* The vertical strip of icon tools down the left edge. Geometry only; painted
+   in controls.css. It is a workspace child rather than a body child so it sits
+   beside the panel and the stage and never covers them. */
+.rail {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  width: var(--psui-rail-w);
+  padding: var(--space-2, 8px) 0;
+  overflow: visible;             /* the hover tooltips fly out to the right */
+  z-index: 15;
+}
+
+.rail__group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+
+.rail__group[hidden] {
+  display: none;
+}
+
+/* Pushes the export cluster to the bottom of the rail: destructive-ish,
+   end-of-session actions stay away from the editing tools at the top. */
+.rail__spacer {
+  flex: 1 1 auto;
+  min-height: var(--space-3, 12px);
+}
+
+.left-panel {
+  flex: 0 0 auto;
+  padding: 10px;
+}
+
+/* Panel modes (chrome.js writes data-panel-mode on <body>).
+   `display: none` is deliberate for the two collapsed modes: it takes the whole
+   sidebar out of the tab order, which a merely off-screen panel would not. */
+body.panel-collapsed .left-panel {
+  display: none;
+}
+
+/* --- panel resizer -------------------------------------------------------- */
+
+/* A thin gutter that owns the boundary between panel and stage. Geometry only;
+   its colours and grip live in controls.css with the rest of the chrome. */
+.panel-resizer {
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 4;
+  width: 6px;
+  cursor: col-resize;
+  touch-action: none;            /* the pointer drag must not scroll the page */
+}
+
+body.panel-collapsed .panel-resizer {
+  display: none;
+}
+
+/* --- focus mode ----------------------------------------------------------- */
+
+/* Everything goes except the sheet. The top bar is already handled by the
+   shared [data-chrome-region] machinery; the rail is ours to hide. #focus-exit
+   is fixed-positioned outside the workspace, so it survives all of this. */
+body.focus-mode .rail {
+  display: none;
+}
+
+body.focus-mode .stage {
+  padding: var(--space-3, 12px);
+}
+
+/* Set on <body> for the duration of a drag: without it the pointer selects
+   text across the whole document as soon as it leaves the 6px handle. */
+body.is-resizing-panel {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* --- stage ---------------------------------------------------------------- */
+
+.stage {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 28px;
+  overflow: auto;
+  overscroll-behavior: contain;
+
+  /* A quiet grid so an off-white poster still reads as a sheet on a surface. */
+  background-color: var(--psui-surface-2);
+  background-image:
+    linear-gradient(rgba(120, 132, 155, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 132, 155, 0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* `margin: auto` on a flex child centres it while still allowing scroll to the
+   top-left edge when the poster is larger than the viewport — which `justify-
+   content: center` alone does not. */
+.stage > .poster {
+  flex: 0 0 auto;
+  margin: auto;
+}
+
+/* ==========================================================================
+   2. Poster root
+   ========================================================================== */
+
+.poster {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: #ffffff;
+  color: var(--ps-body, #1c2330);
+  box-shadow:
+    0 0 0 1px rgba(16, 24, 40, 0.10),
+    0 18px 46px rgba(16, 24, 40, 0.20);
+}
+
+/* Background colour layer, plus the optional texture above it. */
+.poster__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.poster__bg-image {
+  position: absolute;
+  inset: 0;
+}
+
+.poster__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+/* ==========================================================================
+   3. Header band
+   ========================================================================== */
+
+.poster-header {
+  display: grid;
+  flex: 0 0 auto;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--ps-header-bg, #0f3057);
+  color: var(--ps-header-text, #ffffff);
+}
+
+.poster-header__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.poster-header__center {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.35em;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Editing affordance: a faint field outline only while the pointer is over the
+   header, so the exported poster is never decorated with editor chrome. */
+.poster-header__center [contenteditable] {
+  border-radius: 3px;
+  outline: 1px solid transparent;
+  outline-offset: 3px;
+  transition: outline-color 0.12s ease, background-color 0.12s ease;
+}
+
+.poster-header:hover [contenteditable]:not(:focus) {
+  outline-color: rgba(255, 255, 255, 0.28);
+}
+
+.poster-header__center [contenteditable]:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================================================
+   4. Columns & the block tree
+   ========================================================================== */
+
+.poster-body {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  min-height: 0;
+  min-width: 0;
+}
+
+.poster-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Splits are laid out inline by canvas.js (direction + gap); these guards stop a
+   deep tree from overflowing rather than distributing the shortfall. */
+.block-split {
+  min-width: 0;
+  min-height: 0;
+}
+
+.block-split > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+.block {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.block__title {
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.block__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.block__body--image {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+
+/* --- figure + caption ------------------------------------------------------
+
+   The contract for a captioned figure is that the PAIR fits the sub-block, so
+   the two share one height budget:
+
+     .block__figure-media  flex: 1 1 auto + min-height: 0   -> yields first
+     .block__caption       flex: 0 0 auto + max-height: 45% -> capped, never
+                                                               pushes the image out
+
+   `min-height: 0` on the media is what makes this work at all: without it a
+   flex item refuses to shrink below its content's intrinsic height, and the
+   caption would be forced outside the block and clipped by `overflow: hidden`.
+   The caption is also an auto-fit target, so once it hits its cap the type
+   shrinks rather than the text being cut off. */
+
+.block__figure {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.block__figure-media {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.block__caption {
+  flex: 0 0 auto;
+  max-height: 45%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* --- section-header bands --------------------------------------------------
+   Height comes from canvas.js (one global value for the whole poster) so bands
+   line up across columns; this only handles centring the banner inside it. */
+
+.block--section {
+  flex-direction: row;
+  align-items: center;
+}
+
+/* Full width so the band's inherited `text-align` is what positions the
+   banner — no second alignment mechanism to keep in sync. */
+.block__section-text {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   5. Images & the missing-image fallback
+   ========================================================================== */
+
+.ps-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;           /* mountImage overrides this inline per <Image>.fit */
+  object-position: center;
+}
+
+/* Markdown images are inline content, not a slot to be filled. */
+.prose .ps-img,
+.prose img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+/* A broken or absent image must never collapse the layout — it becomes a calm,
+   clearly labelled neutral panel that still shows the path that failed. */
+.ps-img-missing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  width: 100%;
+  height: 100%;
+  min-height: 2.4em;
+  padding: 0.6em;
+  border: 0.06em dashed rgba(108, 122, 145, 0.55);
+  border-radius: 0.12em;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(140, 152, 172, 0.06) 0,
+      rgba(140, 152, 172, 0.06) 0.5em,
+      transparent 0.5em,
+      transparent 1em
+    ),
+    rgba(236, 239, 245, 0.85);
+  color: #5b6679;
+  text-align: center;
+  overflow: hidden;
+}
+
+/* Inline variant used for a broken image inside Markdown prose. */
+.ps-img-missing--inline {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  padding: 0.25em 0.5em;
+  vertical-align: middle;
+}
+
+.ps-img-missing__icon {
+  font-size: 1.6em;
+  line-height: 1;
+  opacity: 0.55;
+}
+
+.ps-img-missing--inline .ps-img-missing__icon {
+  font-size: 1em;
+}
+
+.ps-img-missing__text {
+  font-size: 0.82em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.ps-img-missing__path {
+  max-width: 100%;
+  padding: 0.1em 0.35em;
+  border-radius: 0.1em;
+  background: rgba(255, 255, 255, 0.7);
+  color: #6a7488;
+  font-family: var(--psui-font-mono, ui-monospace, Menlo, Consolas, monospace);
+  font-size: 0.68em;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* ==========================================================================
+   6. Selection, navigation flash and the inline editor
+   ========================================================================== */
+
+.block,
+.poster-header__logo,
+.poster-header__center > [data-field] {
+  outline: 0 solid transparent;
+  outline-offset: 2px;
+  transition: outline-color 0.12s ease, outline-width 0.12s ease;
+}
+
+.stage .block:hover {
+  outline: 1px solid rgba(47, 111, 208, 0.45);
+}
+
+.stage .is-selected,
+.stage .block.is-selected:hover {
+  outline: 2px solid var(--psui-accent, #2f6fd0);
+  outline-offset: 2px;
+}
+
+/* Live Markdown editing inside a block. The caret ring is drawn on the editable
+   itself rather than on the block card, so it is obvious which of a block's two
+   writing surfaces — its heading bar or its prose — is being typed into.
+
+   There is still deliberately no hover *outline*: the card already has one, and
+   a second outline nested inside it reads as noise. But with no signal at all
+   the canvas read as a dead preview — people assumed text could only be edited
+   in the left panel. So the affordance is carried by the two cheapest channels
+   instead: an I-beam cursor, and a wash tinted with the accent. Neither adds an
+   edge, so neither competes with the card outline or the focus ring. */
+.stage [data-editable] {
+  cursor: text;
+}
+
+.stage [data-editable]:hover:not(:focus) {
+  background: color-mix(in srgb, var(--psui-accent, #2f6fd0) 8%, transparent);
+  border-radius: 2px;
+}
+
+.stage [data-editable]:focus {
+  outline: 2px solid var(--psui-accent, #2f6fd0);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* An editable the user has emptied still has to be clickable to get back into. */
+.stage [data-editable]:empty {
+  min-height: 1em;
+}
+
+/* Flash used by scrollToBlock() so a click in the document tree is visible even
+   on a sheet several metres wide. */
+.is-flash {
+  animation: ps-flash 1.2s ease-out 1;
+}
+
+@keyframes ps-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(47, 111, 208, 0.65); }
+  35%  { box-shadow: 0 0 0 0.6em rgba(47, 111, 208, 0.28); }
+  100% { box-shadow: 0 0 0 0 rgba(47, 111, 208, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-flash { animation: none; outline: 3px solid var(--psui-accent, #2f6fd0); }
+  .poster-header__center [contenteditable] { transition: none; }
+  .block { transition: none; }
+}
+
+/* The overlay textarea fills its block so the user edits in place. Deliberately
+   sized in fixed px: at 15% zoom, text scaled by ppi would be unreadable. */
+.block__editor {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border: 2px solid var(--psui-accent, #2f6fd0);
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1c2330;
+  font-family: var(--psui-font-mono, ui-monospace, Menlo, Consolas, monospace);
+  font-size: 13px;
+  line-height: 1.5;
+  tab-size: 2;
+  resize: none;
+  outline: none;
+  box-shadow: 0 10px 26px rgba(16, 24, 40, 0.28);
+}
+
+/* ==========================================================================
+   7. Per-block toolbar
+   Fixed pixel sizing on purpose — it is editor chrome, not poster content, so it
+   must stay usable at 10% zoom and is never present in an export.
+   ========================================================================== */
+
+.block-toolbar {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 5;
+  display: flex;
+  /* The size controls make the bar wider than a narrow column, so it wraps to a
+     second line there rather than spilling over the neighbouring block. */
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  max-width: calc(100% - 8px);
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--psui-line);
+  border-radius: 5px;
+  background: var(--psui-surface);
+  box-shadow: var(--psui-shadow-2);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.block:hover > .block-toolbar,
+.block.is-selected > .block-toolbar,
+.block-toolbar:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.block-toolbar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--psui-ink-2);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.block-toolbar__btn:hover {
+  background: var(--psui-accent-soft, #e9f0fd);
+  color: var(--psui-accent-ink, #1f4f9c);
+}
+
+.block-toolbar__btn:focus-visible {
+  outline: 2px solid var(--psui-accent, #2f6fd0);
+  outline-offset: 1px;
+}
+
+.block-toolbar__btn--danger:hover {
+  background: var(--psui-danger-soft, #fdecea);
+  color: var(--psui-danger-ink, #8f1d17);
+}
+
+/* --- font size & "scale text" -----------------------------------------------
+   The typographic half of the hover menu: a pt field, the same sizes as a
+   dropdown, and a scale slider. Separated from the structural buttons by a rule
+   so the two halves read as different kinds of action, and kept inside the same
+   24px rhythm so the bar never grows a second row on its own account.
+   Horizontal space is cheap on a laptop and vertical is not, which is why this
+   sits inline in the existing bar rather than becoming a panel of its own.
+   -------------------------------------------------------------------------- */
+
+.block-toolbar__sizes {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+  margin-left: 2px;
+  padding-left: 4px;
+  border-left: 1px solid var(--psui-line);
+}
+
+.block-toolbar__pt,
+.block-toolbar__preset {
+  height: 20px;
+  min-height: 0;
+  margin: 0;
+  padding: 0 2px;
+  border: 1px solid var(--psui-line);
+  border-radius: var(--psui-radius-sm, 4px);
+  background: var(--psui-surface);
+  color: var(--psui-ink);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.block-toolbar__pt {
+  width: 38px;
+  text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+/* The spin buttons would take half of a 38px field with them. */
+.block-toolbar__pt::-webkit-outer-spin-button,
+.block-toolbar__pt::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.block-toolbar__preset {
+  width: 44px;
+  cursor: pointer;
+}
+
+.block-toolbar__pt:focus-visible,
+.block-toolbar__preset:focus-visible,
+.block-toolbar__scale:focus-visible {
+  outline: 2px solid var(--psui-accent, #2f6fd0);
+  outline-offset: 1px;
+}
+
+/* "Scale text" — a live multiplier on top of whichever size is in force, so it
+   composes with the pt field rather than replacing it. */
+.block-toolbar__scale {
+  width: 66px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.block-toolbar__scale:active {
+  cursor: grabbing;
+}
+
+.block-toolbar__scale::-webkit-slider-runnable-track {
+  height: 3px;
+  border: none;
+  border-radius: 999px;
+  background: var(--psui-surface-3);
+}
+
+.block-toolbar__scale::-webkit-slider-thumb {
+  width: 11px;
+  height: 11px;
+  margin-top: -4px; /* centre the thumb on the 3px track */
+  border: 1px solid var(--psui-accent-ink);
+  border-radius: 50%;
+  background: var(--psui-accent);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.block-toolbar__scale::-moz-range-track {
+  height: 3px;
+  border: none;
+  border-radius: 999px;
+  background: var(--psui-surface-3);
+}
+
+.block-toolbar__scale::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border: 1px solid var(--psui-accent-ink);
+  border-radius: 50%;
+  background: var(--psui-accent);
+}
+
+/* ==========================================================================
+   8. Boot failure & no-JS notices
+   ========================================================================== */
+
+.noscript-notice,
+#boot-error {
+  margin: 24px;
+  padding: 16px 18px;
+  border: 1px solid var(--psui-danger, #b3261e);
+  border-radius: var(--psui-radius-lg, 10px);
+  background: var(--psui-danger-soft, #fdecea);
+  color: var(--psui-danger-ink, #8f1d17);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+#boot-error {
+  position: fixed;
+  inset: 60px 24px auto 24px;
+  z-index: 100;
+  max-height: 70vh;
+  overflow: auto;
+  box-shadow: var(--psui-shadow-3, 0 12px 28px rgba(16, 24, 40, 0.18));
+}
+
+#boot-error[hidden] {
+  display: none;
+}
+
+#boot-error-detail {
+  margin: 10px 0 0;
+  padding: 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.7);
+  color: #5b2118;
+  font-family: var(--psui-font-mono, ui-monospace, Menlo, Consolas, monospace);
+  font-size: 11px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ==========================================================================
+   9. Export stages
+   ========================================================================== */
+
+/* html2canvas needs the node laid out and painted, but off-screen. `left` rather
+   than `display:none` or `visibility:hidden`, both of which yield a blank canvas. */
+#pdf-stage {
+  position: fixed;
+  top: 0;
+  left: -100000px;
+  z-index: -1;
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+  pointer-events: none;
+}
+
+#print-root {
+  display: none;
+}
+
+#print-root .poster {
+  margin: 0;
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   10. Print
+   `printPoster()` adds `body.printing` and injects an `@page` rule with the real
+   sheet size, so the poster prints as one page at true scale — vector text, no
+   raster limit. A plain browser Ctrl+P without our route still prints the poster
+   rather than the editor.
+   ========================================================================== */
+
+@media print {
+  html,
+  body {
+    height: auto;
+    overflow: visible;
+    background: #ffffff;
+  }
+
+  /* Browsers default to `print-color-adjust: economy`, which is free to drop
+     background fills to save ink. On a poster the fills ARE the design — the
+     header band, the accent rules, every card — so a poster printed in economy
+     mode comes out as black text on white paper. Force `exact` on the printed
+     subtree only; the -webkit- prefix is still required by Chrome and Safari. */
+  #print-root,
+  #print-root *,
+  .stage > .poster,
+  .stage > .poster * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .topbar,
+  .left-panel,
+  .rail,
+  .focus-exit,
+  .toast-host,
+  #boot-error,
+  #hidden-file {
+    display: none !important;
+  }
+
+  .workspace {
+    display: block;
+  }
+
+  .stage {
+    display: block;
+    padding: 0;
+    overflow: visible;
+    background: none;
+  }
+
+  .stage > .poster {
+    margin: 0;
+    box-shadow: none;
+  }
+
+  /* Editor-only affordances never reach paper. */
+  .block-toolbar,
+  .block__editor {
+    display: none !important;
+  }
+
+  .block,
+  .stage .block:hover,
+  .stage .is-selected,
+  .stage [data-editable],
+  .poster-header__center [contenteditable] {
+    outline: none !important;
+  }
+
+  .is-flash {
+    animation: none !important;
+  }
+
+  /* Dedicated vector route: hide the live editor entirely and print #print-root. */
+  body.printing .workspace {
+    display: none !important;
+  }
+
+  body.printing #print-root {
+    display: block;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Never break a block across pages when a poster does spill onto two sheets. */
+  .block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .poster {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+}

@@ -1,0 +1,738 @@
+/* ===========================================================================
+   App Suite — canonical theme tokens.
+
+   ONE source of truth for colour across the dashboard and all six apps. Every
+   app links this file and then styles itself only in terms of the variables
+   below; no app hardcodes a hex value in its own stylesheet. That is what makes
+   a theme picked in one app look like the same product as the next.
+
+   HOW IT WORKS
+     - `data-theme` on <html> picks the palette   (slate, indigo, emerald, ...)
+     - `data-mode`  on <html> picks light or dark (light, dark)
+     - With no `data-mode`, the OS preference wins via prefers-color-scheme.
+
+   Ten palettes x two modes. Each palette defines the same token names, so
+   switching is a single attribute change with no reflow and no JS repaint.
+
+   CONTRAST
+     Body text against its background clears WCAG AAA (7:1) in every
+     palette/mode pair; muted text and large text clear AA (4.5:1 / 3:1).
+     Accent colours are paired with an --accent-contrast that is legible on
+     them. If you add a palette, check it before shipping — the eye is a poor
+     contrast meter, especially for yellows and cyans.
+
+   ADDING A PALETTE
+     Copy one [data-theme="..."] light block and its dark counterpart, change
+     the values, and add the name to THEMES in shared/theme-switcher.js.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1. Non-colour tokens — identical in every theme.
+   --------------------------------------------------------------------------- */
+
+:root {
+  /* Type. A single scale everything else is expressed in, so a font-size
+     change at the root rescales the whole product proportionally. */
+  --font-sans: "Inter", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont,
+               "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Playfair Display", "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+
+  --text-xs:   0.75rem;
+  --text-sm:   0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg:   1.0625rem;
+  --text-xl:   1.375rem;
+  --text-2xl:  1.75rem;
+  --text-3xl:  2.25rem;
+
+  --leading-tight: 1.25;
+  --leading-normal: 1.55;
+  --leading-loose: 1.75;
+
+  /* Space. A 4px base grid; every margin and padding is a multiple. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
+
+  /* Motion. Kept short: this is a tool, not a slideshow. */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-fast: 110ms;
+  --dur-base: 180ms;
+  --dur-slow: 300ms;
+
+  --z-sticky: 100;
+  --z-overlay: 400;
+  --z-modal: 500;
+  --z-toast: 600;
+}
+
+/* Motion tokens collapse rather than the animations being individually
+   disabled, so a preference for less motion is honoured everywhere at once. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   2. Palettes.
+
+   Token meanings, so a new palette can be written without guesswork:
+
+     --bg              the page itself, furthest back
+     --bg-sunken       wells, tracks, insets — recedes from --bg
+     --surface         cards, panels, bars — sits on top of --bg
+     --surface-hover   a surface under the pointer
+     --surface-active  a surface being pressed, or a selected row
+     --border          hairlines between regions
+     --border-strong   input outlines, dividers that must be seen
+     --text            body copy
+     --text-muted      secondary copy, labels, help text
+     --text-faint      placeholders, disabled
+     --accent          the theme's identity: active tab, primary button, focus
+     --accent-hover    accent under the pointer
+     --accent-soft     a wash of accent for selected backgrounds
+     --accent-contrast text/icons drawn ON --accent
+     --success/--warning/--danger and their -soft washes
+   --------------------------------------------------------------------------- */
+
+/* ---------- Slate — the neutral default. Grey with a cool blue accent. ----- */
+
+:root,
+[data-theme="slate"] {
+  --bg: #f6f7f9;
+  --bg-sunken: #eaecf0;
+  --surface: #ffffff;
+  --surface-hover: #f2f4f7;
+  --surface-active: #e7eaef;
+  --border: #dfe3e8;
+  --border-strong: #b9c0c9;
+  --text: #16191d;
+  --text-muted: #5b636e;
+  --text-faint: #8b939e;
+  --accent: #2f6fed;
+  --accent-hover: #2559c8;
+  --accent-soft: #e4ecfd;
+  --accent-contrast: #ffffff;
+  --success: #0f7a4a;
+  --success-soft: #dcf3e7;
+  --warning: #96600a;
+  --warning-soft: #fbeed3;
+  --danger: #b32020;
+  --danger-soft: #fbe3e3;
+}
+
+[data-mode="dark"],
+[data-theme="slate"][data-mode="dark"] {
+  --bg: #101317;
+  --bg-sunken: #0a0c0f;
+  --surface: #191d23;
+  --surface-hover: #222831;
+  --surface-active: #2b323c;
+  --border: #2a3039;
+  --border-strong: #414a56;
+  --text: #eef1f5;
+  --text-muted: #a4adb9;
+  --text-faint: #737d8a;
+  --accent: #6f9bff;
+  --accent-hover: #8db0ff;
+  --accent-soft: #1c2740;
+  --accent-contrast: #0b1220;
+  --success: #4ecb8d;
+  --success-soft: #10291e;
+  --warning: #e2b25c;
+  --warning-soft: #2c2312;
+  --danger: #f0787a;
+  --danger-soft: #331718;
+}
+
+/* ---------- Indigo — deep blue-violet, calm and editorial. ---------------- */
+
+[data-theme="indigo"] {
+  --bg: #f5f5fb;
+  --bg-sunken: #e9e9f5;
+  --surface: #ffffff;
+  --surface-hover: #f1f1fa;
+  --surface-active: #e5e5f4;
+  --border: #dedef0;
+  --border-strong: #b6b6d6;
+  --text: #17172b;
+  --text-muted: #56567a;
+  --text-faint: #8686a6;
+  --accent: #4f46e5;
+  --accent-hover: #3f37c4;
+  --accent-soft: #e7e5fd;
+  --accent-contrast: #ffffff;
+  --success: #0f7a4a;
+  --success-soft: #dcf3e7;
+  --warning: #96600a;
+  --warning-soft: #fbeed3;
+  --danger: #b32020;
+  --danger-soft: #fbe3e3;
+}
+
+[data-theme="indigo"][data-mode="dark"] {
+  --bg: #0f0f1a;
+  --bg-sunken: #08080f;
+  --surface: #181828;
+  --surface-hover: #212135;
+  --surface-active: #2b2b44;
+  --border: #292940;
+  --border-strong: #3f3f60;
+  --text: #eeeef8;
+  --text-muted: #a5a5c4;
+  --text-faint: #757595;
+  --accent: #9d95ff;
+  --accent-hover: #b4aeff;
+  --accent-soft: #23204a;
+  --accent-contrast: #0d0b22;
+  --success: #4ecb8d;
+  --success-soft: #10291e;
+  --warning: #e2b25c;
+  --warning-soft: #2c2312;
+  --danger: #f0787a;
+  --danger-soft: #331718;
+}
+
+/* ---------- Emerald — green, fresh, good for long reading sessions. ------- */
+
+[data-theme="emerald"] {
+  --bg: #f3f8f5;
+  --bg-sunken: #e5efe9;
+  --surface: #ffffff;
+  --surface-hover: #eff6f2;
+  --surface-active: #e1ede6;
+  --border: #d8e6de;
+  --border-strong: #aac6b8;
+  --text: #0f1d16;
+  --text-muted: #4d6659;
+  --text-faint: #7d9488;
+  --accent: #0b7a53;
+  --accent-hover: #085f40;
+  --accent-soft: #d8f0e5;
+  --accent-contrast: #ffffff;
+  --success: #0b7a53;
+  --success-soft: #d8f0e5;
+  --warning: #96600a;
+  --warning-soft: #fbeed3;
+  --danger: #b32020;
+  --danger-soft: #fbe3e3;
+}
+
+[data-theme="emerald"][data-mode="dark"] {
+  --bg: #0b1410;
+  --bg-sunken: #060d0a;
+  --surface: #121f19;
+  --surface-hover: #1a2b22;
+  --surface-active: #23392e;
+  --border: #21362b;
+  --border-strong: #365345;
+  --text: #e9f4ee;
+  --text-muted: #9db8ab;
+  --text-faint: #6d8a7c;
+  --accent: #47cf95;
+  --accent-hover: #6bdcaa;
+  --accent-soft: #113026;
+  --accent-contrast: #05130d;
+  --success: #47cf95;
+  --success-soft: #113026;
+  --warning: #e2b25c;
+  --warning-soft: #2c2312;
+  --danger: #f0787a;
+  --danger-soft: #331718;
+}
+
+/* ---------- Amber — warm sand and gold. Low-glare, easy in the evening. --- */
+
+[data-theme="amber"] {
+  --bg: #faf6ee;
+  --bg-sunken: #f0e9db;
+  --surface: #fffdf9;
+  --surface-hover: #f6f0e4;
+  --surface-active: #ece3d2;
+  --border: #e7ddc9;
+  --border-strong: #c7b795;
+  --text: #241d10;
+  --text-muted: #6a5c42;
+  --text-faint: #99896c;
+  --accent: #a8600b;
+  --accent-hover: #874c06;
+  --accent-soft: #f8e6c9;
+  --accent-contrast: #ffffff;
+  --success: #0f7a4a;
+  --success-soft: #dcf3e7;
+  --warning: #a8600b;
+  --warning-soft: #f8e6c9;
+  --danger: #b32020;
+  --danger-soft: #fbe3e3;
+}
+
+[data-theme="amber"][data-mode="dark"] {
+  --bg: #16120a;
+  --bg-sunken: #0e0b05;
+  --surface: #211b11;
+  --surface-hover: #2c2417;
+  --surface-active: #3a301f;
+  --border: #362c1c;
+  --border-strong: #55462c;
+  --text: #f6efe1;
+  --text-muted: #bdad91;
+  --text-faint: #8d7f66;
+  --accent: #e8a94b;
+  --accent-hover: #f2bd6b;
+  --accent-soft: #38280f;
+  --accent-contrast: #1a1206;
+  --success: #4ecb8d;
+  --success-soft: #10291e;
+  --warning: #e8a94b;
+  --warning-soft: #38280f;
+  --danger: #f0787a;
+  --danger-soft: #331718;
+}
+
+/* ---------- Rose — pink-red, high energy. Good for posters and comms. ----- */
+
+[data-theme="rose"] {
+  --bg: #fdf5f6;
+  --bg-sunken: #f7e8ea;
+  --surface: #ffffff;
+  --surface-hover: #fbeff1;
+  --surface-active: #f5e2e5;
+  --border: #f0dfe2;
+  --border-strong: #d5aab1;
+  --text: #241417;
+  --text-muted: #6b4a51;
+  --text-faint: #9c777e;
+  --accent: #c2185b;
+  --accent-hover: #9d1249;
+  --accent-soft: #fbdde8;
+  --accent-contrast: #ffffff;
+  --success: #0f7a4a;
+  --success-soft: #dcf3e7;
+  --warning: #96600a;
+  --warning-soft: #fbeed3;
+  --danger: #b32020;
+  --danger-soft: #fbe3e3;
+}
+
+[data-theme="rose"][data-mode="dark"] {
+  --bg: #170e11;
+  --bg-sunken: #0f070a;
+  --surface: #221619;
+  --surface-hover: #2e1e23;
+  --surface-active: #3c282e;
+  --border: #38242a;
+  --border-strong: #573a43;
+  --text: #f8ecef;
+  --text-muted: #c2a2aa;
+  --text-faint: #927680;
+  --accent: #ff7fa8;
+  --accent-hover: #ff9cbc;
+  --accent-soft: #3c1826;
+  --accent-contrast: #1b0810;
+  --success: #4ecb8d;
+  --success-soft: #10291e;
+  --warning: #e2b25c;
+  --warning-soft: #2c2312;
+  --danger: #f0787a;
+  --danger-soft: #331718;
+}
+
+/* ---------- Teal — cyan-green, clinical and clear. ----------------------- */
+
+[data-theme="teal"] {
+  --bg: #f2f8f9;
+  --bg-sunken: #e3eff1;
+  --surface: #ffffff;
+  --surface-hover: #edf6f7;
+  --surface-active: #dfedef;
+  --border: #d5e6e8;
+  --border-strong: #a3c5c9;
+  --text: #0d1c1e;
+  --text-muted: #486165;
+  --text-faint: #789195;
+  --accent: #00727f;
+  --accent-hover: #005a65;
+  --accent-soft: #d3eef1;
+  --accent-contrast: #ffffff;
+  --success: #0f7a4a;
+  --success-soft: #dcf3e7;
+  --warning: #96600a;
+  --warning-soft: #fbeed3;
+  --danger: #b32020;
+  --danger-soft: #fbe3e3;
+}
+
+[data-theme="teal"][data-mode="dark"] {
+  --bg: #091517;
+  --bg-sunken: #050e0f;
+  --surface: #102124;
+  --surface-hover: #172d31;
+  --surface-active: #1f3c41;
+  --border: #1d383c;
+  --border-strong: #30565c;
+  --text: #e6f3f5;
+  --text-muted: #9bb8bc;
+  --text-faint: #6c8a8f;
+  --accent: #3ec8d8;
+  --accent-hover: #63d6e3;
+  --accent-soft: #0e3238;
+  --accent-contrast: #04161a;
+  --success: #4ecb8d;
+  --success-soft: #10291e;
+  --warning: #e2b25c;
+  --warning-soft: #2c2312;
+  --danger: #f0787a;
+  --danger-soft: #331718;
+}
+
+/* ---------- Violet — purple, expressive. Pairs with the digital templates. */
+
+[data-theme="violet"] {
+  --bg: #f9f5fc;
+  --bg-sunken: #efe6f6;
+  --surface: #ffffff;
+  --surface-hover: #f5eefa;
+  --surface-active: #ebe0f3;
+  --border: #e8dcf1;
+  --border-strong: #c3a6d8;
+  --text: #1e1226;
+  --text-muted: #5e4770;
+  --text-faint: #8f76a1;
+  --accent: #7c30c4;
+  --accent-hover: #6423a3;
+  --accent-soft: #eeddfb;
+  --accent-contrast: #ffffff;
+  --success: #0f7a4a;
+  --success-soft: #dcf3e7;
+  --warning: #96600a;
+  --warning-soft: #fbeed3;
+  --danger: #b32020;
+  --danger-soft: #fbe3e3;
+}
+
+[data-theme="violet"][data-mode="dark"] {
+  --bg: #120c18;
+  --bg-sunken: #0b0710;
+  --surface: #1c1425;
+  --surface-hover: #261b32;
+  --surface-active: #332443;
+  --border: #2f2140;
+  --border-strong: #4a355f;
+  --text: #f2ecf8;
+  --text-muted: #b5a3c6;
+  --text-faint: #857496;
+  --accent: #bb86ff;
+  --accent-hover: #cda3ff;
+  --accent-soft: #2c1a45;
+  --accent-contrast: #150826;
+  --success: #4ecb8d;
+  --success-soft: #10291e;
+  --warning: #e2b25c;
+  --warning-soft: #2c2312;
+  --danger: #f0787a;
+  --danger-soft: #331718;
+}
+
+/* ---------- Copper — earthy orange-brown, print-shop warmth. ------------- */
+
+[data-theme="copper"] {
+  --bg: #faf5f2;
+  --bg-sunken: #f0e6e0;
+  --surface: #fffcfa;
+  --surface-hover: #f6eee9;
+  --surface-active: #ece0d8;
+  --border: #e9dbd2;
+  --border-strong: #c8a894;
+  --text: #241611;
+  --text-muted: #6c5347;
+  --text-faint: #9a8070;
+  --accent: #b04f22;
+  --accent-hover: #8d3e19;
+  --accent-soft: #f9dfd1;
+  --accent-contrast: #ffffff;
+  --success: #0f7a4a;
+  --success-soft: #dcf3e7;
+  --warning: #96600a;
+  --warning-soft: #fbeed3;
+  --danger: #b32020;
+  --danger-soft: #fbe3e3;
+}
+
+[data-theme="copper"][data-mode="dark"] {
+  --bg: #150f0c;
+  --bg-sunken: #0d0806;
+  --surface: #201714;
+  --surface-hover: #2b201b;
+  --surface-active: #392b24;
+  --border: #352721;
+  --border-strong: #543f34;
+  --text: #f6ede8;
+  --text-muted: #c0a597;
+  --text-faint: #8f7a6d;
+  --accent: #f08a52;
+  --accent-hover: #f6a273;
+  --accent-soft: #3a2116;
+  --accent-contrast: #1a0d06;
+  --success: #4ecb8d;
+  --success-soft: #10291e;
+  --warning: #e2b25c;
+  --warning-soft: #2c2312;
+  --danger: #f0787a;
+  --danger-soft: #331718;
+}
+
+/* ---------- Midnight — always-dark, near-black with electric blue. -------
+   Deliberately identical in both modes. Some people want dark regardless of
+   what the OS says, and a "dark theme" that goes light at sunrise is a bug to
+   them. Picking Midnight is a decision, not a preference to be second-guessed.
+   --------------------------------------------------------------------------- */
+
+[data-theme="midnight"],
+[data-theme="midnight"][data-mode="light"],
+[data-theme="midnight"][data-mode="dark"] {
+  --bg: #05070d;
+  --bg-sunken: #020306;
+  --surface: #0c1018;
+  --surface-hover: #141a25;
+  --surface-active: #1c2433;
+  --border: #1a212e;
+  --border-strong: #2e394b;
+  --text: #e8edf6;
+  --text-muted: #97a3b8;
+  --text-faint: #66718a;
+  --accent: #4d9dff;
+  --accent-hover: #74b4ff;
+  --accent-soft: #12233d;
+  --accent-contrast: #030711;
+  --success: #4ecb8d;
+  --success-soft: #10291e;
+  --warning: #e2b25c;
+  --warning-soft: #2c2312;
+  --danger: #f0787a;
+  --danger-soft: #331718;
+}
+
+/* ---------- Paper — always-light, warm off-white. The opposite promise. --- */
+
+[data-theme="paper"],
+[data-theme="paper"][data-mode="light"],
+[data-theme="paper"][data-mode="dark"] {
+  --bg: #fbfaf7;
+  --bg-sunken: #f1efe9;
+  --surface: #ffffff;
+  --surface-hover: #f6f4ef;
+  --surface-active: #ebe8e0;
+  --border: #e6e2d9;
+  --border-strong: #c0b9a9;
+  --text: #1c1a15;
+  --text-muted: #5f5a4e;
+  --text-faint: #8f8878;
+  --accent: #3b5f8a;
+  --accent-hover: #2d4a6d;
+  --accent-soft: #e3ebf4;
+  --accent-contrast: #ffffff;
+  --success: #0f7a4a;
+  --success-soft: #dcf3e7;
+  --warning: #96600a;
+  --warning-soft: #fbeed3;
+  --danger: #b32020;
+  --danger-soft: #fbe3e3;
+}
+
+/* ---------------------------------------------------------------------------
+   3. Derived tokens.
+
+   Written once, after the palettes, so every theme gets them for free and no
+   palette has to remember to define a shadow. They are all expressed in terms
+   of tokens above, or in colours that work on any background.
+   --------------------------------------------------------------------------- */
+
+:root {
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.06), 0 1px 1px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.08), 0 1px 3px rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.14), 0 4px 10px rgb(0 0 0 / 0.08);
+
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+
+  /* Glass surfaces. color-mix keeps them tied to the active theme instead of
+     being a fixed white or black wash that only looks right in one mode. */
+  --glass-bg: color-mix(in srgb, var(--surface) 72%, transparent);
+  --glass-border: color-mix(in srgb, var(--border-strong) 45%, transparent);
+  --glass-blur: saturate(180%) blur(14px);
+}
+
+[data-mode="dark"] {
+  /* Shadows do almost nothing on a dark background; elevation there has to come
+     from a lighter surface plus a rim light along the top edge. */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-md: 0 6px 16px rgb(0 0 0 / 0.55);
+  --shadow-lg: 0 20px 48px rgb(0 0 0 / 0.65);
+}
+
+/* ---------------------------------------------------------------------------
+   4. Base element styling.
+
+   Enough for an app to link this file and immediately look like it belongs,
+   without dictating layout. Anything structural stays in the app's own CSS.
+   --------------------------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+}
+
+[data-mode="dark"],
+[data-theme="midnight"] {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  /* Themes are swapped by attribute, so the transition is what stops the change
+     reading as a flicker. Only colour properties transition: putting `all` here
+     would animate layout on every render and make the app feel sluggish. */
+  transition: background-color var(--dur-base) var(--ease),
+              color var(--dur-base) var(--ease);
+}
+
+:where(a) {
+  color: var(--accent);
+  text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  text-underline-offset: 2px;
+}
+
+:where(a:hover) {
+  color: var(--accent-hover);
+  text-decoration-color: currentColor;
+}
+
+/* One focus treatment for the whole suite. :focus-visible rather than :focus so
+   a mouse click on a button does not leave a ring behind it. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+:where(code, kbd, pre, samp) {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* Scrollbars, so a dark theme does not come with two bright white gutters. */
+* {
+  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+  background-clip: content-box;
+}
+
+/* ---------------------------------------------------------------------------
+   5. Density.
+
+   `data-density="compact"` on <html> shrinks the chrome without touching the
+   content. This is the other half of the collapsible-menu work: hiding a bar
+   reclaims its whole height, compact mode reclaims a third of every bar that
+   stays. Apps opt in by expressing bar heights and paddings in these tokens.
+   --------------------------------------------------------------------------- */
+
+:root {
+  --bar-height: 48px;
+  --bar-pad-x: var(--space-4);
+  --control-height: 34px;
+  --control-pad-x: var(--space-3);
+}
+
+[data-density="compact"] {
+  --bar-height: 36px;
+  --bar-pad-x: var(--space-3);
+  --control-height: 26px;
+  --control-pad-x: var(--space-2);
+  --text-base: 0.875rem;
+  --text-sm: 0.75rem;
+  --space-4: 0.75rem;
+  --space-5: 1rem;
+}
+
+/* Small laptops get compact spacing by default. 900px tall is roughly a 13"
+   MacBook with a browser toolbar; below that, vertical chrome is the scarcest
+   resource on screen and full-height bars are not a defensible default. */
+@media (max-height: 900px) {
+  :root:not([data-density="comfortable"]) {
+    --bar-height: 38px;
+    --control-height: 28px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   6. Print.
+
+   Themes are for screens. A poster or resume printed on a dark theme wastes
+   ink and reads badly, so print always falls back to ink on paper.
+   --------------------------------------------------------------------------- */
+
+@media print {
+  :root {
+    --bg: #ffffff;
+    --bg-sunken: #ffffff;
+    --surface: #ffffff;
+    --surface-hover: #ffffff;
+    --surface-active: #ffffff;
+    --border: #cccccc;
+    --border-strong: #999999;
+    --text: #000000;
+    --text-muted: #333333;
+    --text-faint: #666666;
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: none;
+  }
+}

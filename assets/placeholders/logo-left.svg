@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120" width="300" height="120"
+     role="img" aria-label="Northgate University crest">
+  <title>Northgate University</title>
+  <defs>
+    <linearGradient id="lgShield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1d4e89"/>
+      <stop offset="100%" stop-color="#0f3057"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Crest -->
+  <g transform="translate(14 12)">
+    <path d="M0 4 A4 4 0 0 1 4 0 h64 a4 4 0 0 1 4 4 v46 c0 24-15 39-36 46C15 89 0 74 0 50 Z"
+          fill="url(#lgShield)"/>
+    <path d="M6 10 h60 v40 c0 20-12 32-30 38C18 82 6 70 6 50 Z"
+          fill="none" stroke="#f0c661" stroke-width="2" opacity="0.85"/>
+    <!-- Open book -->
+    <path d="M18 40 c8-5 14-5 18-2 v22 c-4-3-10-3-18 2 Z" fill="#ffffff" opacity="0.95"/>
+    <path d="M54 40 c-8-5-14-5-18-2 v22 c4-3 10-3 18 2 Z" fill="#ffffff" opacity="0.78"/>
+    <line x1="36" y1="38" x2="36" y2="62" stroke="#0f3057" stroke-width="1.5"/>
+    <!-- Star -->
+    <path d="M36 16 l3.2 6.6 7.3 1-5.3 5.1 1.3 7.2-6.5-3.4-6.5 3.4 1.3-7.2-5.3-5.1 7.3-1 Z"
+          fill="#f0c661"/>
+  </g>
+
+  <!-- Wordmark -->
+  <g font-family="Georgia, 'Times New Roman', serif" fill="#0f3057">
+    <text x="104" y="48" font-size="27" font-weight="700" letter-spacing="0.4">NORTHGATE</text>
+    <text x="104" y="72" font-size="17" letter-spacing="4.6" fill="#3d5a80">UNIVERSITY</text>
+  </g>
+  <line x1="104" y1="56" x2="288" y2="56" stroke="#c9d6e8" stroke-width="1.5"/>
+  <text x="104" y="93" font-family="Inter, Helvetica, Arial, sans-serif" font-size="11"
+        letter-spacing="1.5" fill="#6b7a90">SCHOOL OF MEDICINE</text>
+</svg>

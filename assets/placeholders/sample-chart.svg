@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400"
+     role="img" aria-label="Grouped bar chart comparing AUROC and sensitivity across three models">
+  <title>Model performance by input modality</title>
+  <desc>Placeholder figure: grouped bars with 95% confidence intervals for three models.</desc>
+
+  <style>
+    .ax   { stroke:#8e9bb0; stroke-width:1.4; }
+    .grid { stroke:#e3e8f0; stroke-width:1; }
+    .tick { font:12px Inter,'Helvetica Neue',Helvetica,Arial,sans-serif; fill:#6b7a90; }
+    .cat  { font:600 13px Inter,'Helvetica Neue',Helvetica,Arial,sans-serif; fill:#3d4a5e; }
+    .val  { font:600 11.5px Inter,'Helvetica Neue',Helvetica,Arial,sans-serif; fill:#3d4a5e; }
+    .ttl  { font:700 16px Inter,'Helvetica Neue',Helvetica,Arial,sans-serif; fill:#0f3057; }
+    .lbl  { font:12px Inter,'Helvetica Neue',Helvetica,Arial,sans-serif; fill:#6b7a90; }
+    .err  { stroke:#3d4a5e; stroke-width:1.6; }
+  </style>
+
+  <rect width="640" height="400" fill="#ffffff"/>
+  <text class="ttl" x="24" y="30">Detection performance by input modality</text>
+
+  <!-- Gridlines + y ticks (0-100) -->
+  <g>
+    <line class="grid" x1="78" y1="330" x2="610" y2="330"/>
+    <line class="grid" x1="78" y1="275.2" x2="610" y2="275.2"/>
+    <line class="grid" x1="78" y1="220.4" x2="610" y2="220.4"/>
+    <line class="grid" x1="78" y1="165.6" x2="610" y2="165.6"/>
+    <line class="grid" x1="78" y1="110.8" x2="610" y2="110.8"/>
+    <line class="grid" x1="78" y1="56" x2="610" y2="56"/>
+  </g>
+  <g class="tick" text-anchor="end">
+    <text x="68" y="334">0</text>
+    <text x="68" y="279.2">20</text>
+    <text x="68" y="224.4">40</text>
+    <text x="68" y="169.6">60</text>
+    <text x="68" y="114.8">80</text>
+    <text x="68" y="60">100</text>
+  </g>
+  <text class="lbl" transform="translate(26 193) rotate(-90)" text-anchor="middle">Score (%)</text>
+
+  <!-- Axes -->
+  <line class="ax" x1="78" y1="56" x2="78" y2="330"/>
+  <line class="ax" x1="78" y1="330" x2="610" y2="330"/>
+
+  <!-- Group 1: Fundus only -->
+  <g>
+    <rect x="138" y="115.2" width="48" height="214.8" fill="#2f7ac9" rx="2"/>
+    <rect x="194" y="134.9" width="48" height="195.1" fill="#12a594" rx="2"/>
+    <g class="err">
+      <line x1="162" y1="107" x2="162" y2="123.4"/><line x1="156" y1="107" x2="168" y2="107"/><line x1="156" y1="123.4" x2="168" y2="123.4"/>
+      <line x1="218" y1="125.3" x2="218" y2="144.5"/><line x1="212" y1="125.3" x2="224" y2="125.3"/><line x1="212" y1="144.5" x2="224" y2="144.5"/>
+    </g>
+    <text class="val" x="162" y="101" text-anchor="middle">78.4</text>
+    <text class="val" x="218" y="119" text-anchor="middle">71.2</text>
+    <text class="cat" x="190" y="352" text-anchor="middle">Fundus only</text>
+  </g>
+
+  <!-- Group 2: OCT only -->
+  <g>
+    <rect x="292" y="99.6" width="48" height="230.4" fill="#2f7ac9" rx="2"/>
+    <rect x="348" y="112.2" width="48" height="217.8" fill="#12a594" rx="2"/>
+    <g class="err">
+      <line x1="316" y1="92" x2="316" y2="107.2"/><line x1="310" y1="92" x2="322" y2="92"/><line x1="310" y1="107.2" x2="322" y2="107.2"/>
+      <line x1="372" y1="104" x2="372" y2="120.4"/><line x1="366" y1="104" x2="378" y2="104"/><line x1="366" y1="120.4" x2="378" y2="120.4"/>
+    </g>
+    <text class="val" x="316" y="86" text-anchor="middle">84.1</text>
+    <text class="val" x="372" y="98" text-anchor="middle">79.5</text>
+    <text class="cat" x="344" y="352" text-anchor="middle">OCT only</text>
+  </g>
+
+  <!-- Group 3: Fused (ours) -->
+  <g>
+    <rect x="446" y="79.0" width="48" height="251.0" fill="#2f7ac9" rx="2"/>
+    <rect x="502" y="88.1" width="48" height="241.9" fill="#12a594" rx="2"/>
+    <g class="err">
+      <line x1="470" y1="72" x2="470" y2="86"/><line x1="464" y1="72" x2="476" y2="72"/><line x1="464" y1="86" x2="476" y2="86"/>
+      <line x1="526" y1="81" x2="526" y2="95.2"/><line x1="520" y1="81" x2="532" y2="81"/><line x1="520" y1="95.2" x2="532" y2="95.2"/>
+    </g>
+    <text class="val" x="470" y="66" text-anchor="middle">91.6</text>
+    <text class="val" x="526" y="75" text-anchor="middle">88.3</text>
+    <text class="cat" x="498" y="352" text-anchor="middle">Fused (ours)</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(392 24)">
+    <rect x="0" y="0" width="13" height="13" rx="2.5" fill="#2f7ac9"/>
+    <text class="lbl" x="19" y="11">AUROC</text>
+    <rect x="92" y="0" width="13" height="13" rx="2.5" fill="#12a594"/>
+    <text class="lbl" x="111" y="11">Sensitivity</text>
+  </g>
+
+  <text class="lbl" x="320" y="382" text-anchor="middle">Error bars: 95% CI over 5 cross-validation folds</text>
+</svg>
